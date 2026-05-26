@@ -8,10 +8,8 @@ export const revalidate = 0;
 export const runtime = "nodejs";
 
 const SessionSchema = new mongoose.Schema({}, { strict: false });
-
 const Session =
-  mongoose.models.Session ||
-  mongoose.model("Session", SessionSchema, "sessions");
+  mongoose.models.Session || mongoose.model("Session", SessionSchema, "sessions");
 
 export async function POST(req) {
   try {
@@ -49,12 +47,8 @@ export async function POST(req) {
     );
 
     const token = crypto.randomBytes(24).toString("hex");
-
     const now = new Date();
-
-    const expires = new Date(
-      now.getTime() + 10 * 60 * 1000
-    );
+    const expires = new Date(now.getTime() + 10 * 60 * 1000);
 
     await Session.create({
       token,
@@ -79,17 +73,11 @@ export async function POST(req) {
       token,
       url: `${baseUrl}/verify/${token}`
     });
-
   } catch (err) {
     console.error(err);
-
     return NextResponse.json(
-      {
-        error: "Internal server error"
-      },
-      {
-        status: 500
-      }
+      { error: "Internal server error" },
+      { status: 500 }
     );
   }
 }

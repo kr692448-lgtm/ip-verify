@@ -16,8 +16,8 @@
 
 import requests
 
-vercel_url = Bot.getData("vercel_url")         # e.g. "https://ip-verify-xyz.vercel.app"
-bot_username = Bot.getData("bot_username")      # e.g. "MyBotUsername"
+vercel_url = Bot.getData("vercel_url")
+bot_username = Bot.getData("bot_username")
 user_id = str(user["telegramid"])
 
 payload = {
@@ -25,7 +25,12 @@ payload = {
     "bot_username": bot_username
 }
 
-resp = requests.post(f"{vercel_url}/api/create-session", json=payload, timeout=10)
+resp = requests.post(
+    f"{vercel_url}/api/create-session",
+    json=payload,
+    timeout=10
+)
+
 data = resp.json()
 
 if data.get("success"):
@@ -55,12 +60,16 @@ resp = requests.get(
     params={"user_id": user_id, "bot_username": bot_username},
     timeout=10
 )
+
 data = resp.json()
 status = data.get("status", "unknown")
 
 if status == "verified":
     ip = data.get("ip_address", "N/A")
-    Bot.sendMessage(f"✅ IP Verified!\n\n🌐 IP: `{ip}`\n\nAccess granted.", parseMode="Markdown")
+    Bot.sendMessage(
+        f"✅ IP Verified!\n\n🌐 IP: `{ip}`\n\nAccess granted.",
+        parseMode="Markdown"
+    )
 elif status == "pending":
     Bot.sendMessage("⏳ Verification pending. Please open the link and verify your IP.")
 elif status == "failed":
