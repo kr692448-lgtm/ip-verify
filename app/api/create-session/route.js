@@ -8,8 +8,10 @@ export const revalidate = 0;
 export const runtime = "nodejs";
 
 const SessionSchema = new mongoose.Schema({}, { strict: false });
+
 const Session =
-  mongoose.models.Session || mongoose.model("Session", SessionSchema, "sessions");
+  mongoose.models.Session ||
+  mongoose.model("Session", SessionSchema, "sessions");
 
 export async function POST(req) {
   try {
@@ -64,9 +66,8 @@ export async function POST(req) {
     });
 
     const baseUrl =
-      process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
     return NextResponse.json({
       success: true,
