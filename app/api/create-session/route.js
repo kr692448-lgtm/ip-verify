@@ -51,7 +51,7 @@ export async function POST(request) {
     await sessions.insertOne(session);
 
     // PLACEHOLDER — deploy ke baad apna vercel URL daal dena
-    const verifyUrl = `https://YOUR_VERCEL_URL/verify/${token}`;
+    const verifyUrl = `https://ip-verify-pi.vercel.app/verify/${token}`;
 
     return NextResponse.json({
       success:    true,
