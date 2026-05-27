@@ -1,84 +1,66 @@
 import { NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import mongoose from "mongoose";
+import { getDb } from "@/lib/mongodb";
 import crypto from "crypto";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const runtime = "nodejs";
-
-const SessionSchema = new mongoose.Schema({}, { strict: false });
-
-const Session =
-  mongoose.models.Session ||
-  mongoose.model("Session", SessionSchema, "sessions");
-
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const body = await req.json();
-
+    const body = await request.json();
     const {
       user_id,
       bot_username,
       bot_id,
       first_name,
       webhook_url,
-      webhook_conflict_url
-    } = body || {};
+      webhook_conflict_url,
+    } = body;
 
-    if (!user_id || !bot_username) {
-      return NextResponse.json(
-        { error: "user_id and bot_username required" },
-        { status: 400 }
-      );
-    }
+    if (!user_id)
+      return NextResponse.json({ error: "user_id is required" }, { status: 400 });
+    if (!bot_username)
+      return NextResponse.json({ error: "bot_username is required" }, { status: 400 });
+    if (!bot_id)
+      return NextResponse.json({ error: "bot_id is required" }, { status: 400 });
 
-    await connectDB();
-
-    await Session.updateMany(
-      {
-        user_id: String(user_id),
-        bot_username,
-        status: "pending"
-      },
-      {
-        $set: {
-          status: "expired"
-        }
-      }
-    );
+    const db = await getDb();
+    const sessions = db.collection("sessions");
 
     const token = crypto.randomBytes(24).toString("hex");
-    const now = new Date();
-    const expires = new Date(now.getTime() + 10 * 60 * 1000);
 
-    await Session.create({
+    // Purane pending sessions expire karo
+    await sessions.updateMany(
+      { user_id: String(user_id), bot_id: String(bot_id), status: "pending" },
+      { $set: { status: "expired" } }
+    );
+
+    const session = {
       token,
-      user_id: String(user_id),
-      bot_username,
-      bot_id: bot_id || "",
-      first_name: first_name || "",
-      webhook_url: webhook_url || "",
-      webhook_conflict_url: webhook_conflict_url || "",
-      status: "pending",
-      created_at: now,
-      expires_at: expires
-    });
+      user_id:              String(user_id),
+      first_name:           first_name ? String(first_name) : null,
+      bot_username:         String(bot_username),
+      bot_id:               String(bot_id),
+      webhook_url:          webhook_url          ? String(webhook_url)          : null,
+      webhook_conflict_url: webhook_conflict_url ? String(webhook_conflict_url) : null,
+      status:               "pending",
+      created_at:           new Date(),
+      expires_at:           new Date(Date.now() + 10 * 60 * 1000),
+      ip_address:           null,
+      user_agent:           null,
+      verified_at:          null,
+    };
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    await sessions.insertOne(session);
+
+    // PLACEHOLDER — deploy ke baad apna vercel URL daal dena
+    const verifyUrl = `https://YOUR_VERCEL_URL/verify/${token}`;
 
     return NextResponse.json({
-      success: true,
+      success:    true,
       token,
-      url: `${baseUrl}/verify/${token}`
+      url:        verifyUrl,
+      expires_at: session.expires_at,
     });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("create-session error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
